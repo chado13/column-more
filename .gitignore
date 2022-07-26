@@ -1,0 +1,10 @@
+# Python Cache File
+__pycache__
+.pytest_cache
+.mypy_cache
+
+# python version
+.python-version
+
+# kakao token
+token.json
