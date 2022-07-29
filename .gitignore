@@ -3,8 +3,5 @@ __pycache__
 .pytest_cache
 .mypy_cache
 
-# python version
+# Python
 .python-version
-
-# kakao token
-token.json
