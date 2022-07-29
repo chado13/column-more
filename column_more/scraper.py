@@ -2,7 +2,7 @@ import abc
 import datetime
 import re
 from tokenize import String
-from typing import List, TypedDict
+from typing import Dict, List, Tuple, TypedDict
 
 import requests
 from bs4 import BeautifulSoup
@@ -21,9 +21,22 @@ class Scraper(abc.ABC):
         clean_text = text.replace("\xa0", " ")
         return clean_text
 
+    def _is_today(self, dt: datetime.datetime) -> bool:
+        today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        if dt >= today:
+            return True
+        else:
+            return False
+
     @abc.abstractclassmethod
-    def get_html(self) -> BeautifulSoup:
+    def get_url_params_headers(self) -> Tuple[str, Dict[str, str], Dict[str, str]]:
         ...
+
+    def get_html(self) -> BeautifulSoup:
+        url, params, headers = self.get_url_params_headers()
+        res = requests.get(url=url, params=params, headers=headers)
+        html = BeautifulSoup(res.content, "lxml")
+        return html
 
     @abc.abstractclassmethod
     def parse(self, html) -> List[Column]:
@@ -36,13 +49,11 @@ class Scraper(abc.ABC):
 
 
 class HKScraper(Scraper):
-    def get_html(self):
+    def get_url_params_headers(self):
         url = "https://www.hankyung.com/opinion/0002"
         headers = {"Referer": "https://www.hankyung.com/opinion/0002"}
         params = {"page": "1"}
-        res = requests.get(url=url, params=params, headers=headers)
-        html = BeautifulSoup(res.content, "lxml")
-        return html
+        return url, params, headers
 
     def parse(self, html):
         columns = []
@@ -50,8 +61,8 @@ class HKScraper(Scraper):
         for each in data:
             dt = each.select("div.article_info > span.time").text.strip()
             dt = self._convert_str_to_datetime(dt, "%Y-%m-%d %H:%M")
-            if dt < datetime.datetime.now().replace(hour=0, minute=0, second=0):
-                continue
+            if not self._is_today(dt):
+                break
             title = each.select_one("div.article > h3.tit > a").text.strip()
             link = each.select_one("div.article > h3.tit > a").get("href").strip()
             columns.append(dict(title=title, link=link))
@@ -59,15 +70,13 @@ class HKScraper(Scraper):
 
 
 class MTDScarper(Scraper):
-    def get_html(self):
+    def get_url_params_headers(self):
         url = "https://news.mt.co.kr/column/opinion_list.html"
         params = {
             "code": "column6",
         }
         headers = {"Referer": "https://news.mt.co.kr/column/opinion_inside.html?code=06"}
-        res = requests.get(url=url, params=params, headers=headers)
-        html = BeautifulSoup(res.content, "lxml")
-        return html
+        return url, params, headers
 
     def parse(self, html):
         data = html.select("div#content > ul.conlist_p1.mgt25 > li.bundle ")
@@ -81,8 +90,29 @@ class MTDScarper(Scraper):
                 dt_txt,
             ).group()
             dt = self._clean_text(dt)
-            now = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            if self._convert_str_to_datetime(dt, "%Y.%m.%d %H:%M") < now:
+            dt = self._convert_str_to_datetime(dt, "%Y.%m.%d %H:%M")
+            if not self._is_today(dt):
+                break
+            columns.append(dict(title=title, link=link))
+        return columns
+
+
+class SeoulScraper(Scraper):
+    def get_url_params_headers(self):
+        url = "https://www.seoul.co.kr/news/newsList.php"
+        params = {"section": "column"}
+        headers = {"Referer": "https://www.seoul.co.kr/news/newsList.php?section=column"}
+        return url, params, headers
+
+    def parse(self, html):
+        columns = []
+        data = html.select("div#articleListDiv > ul.listType_ > li")
+        for each in data:
+            title = each.select_one("div.tit.lineclamp2 > a").get("title")
+            link = "https://www.seoul.co.kr" + each.select_one("div.tit.lineclamp2 > a").get("href")
+            dt = each.select_one("div.date").text.strip()
+            dt = self._convert_str_to_datetime(dt, "%Y-%m-%d")
+            if not self._is_today(dt):
                 break
             columns.append(dict(title=title, link=link))
         return columns
