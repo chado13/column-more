@@ -42,3 +42,16 @@ warn_unused_ignores = true
 ignore_missing_imports = true
 allow_redefinition = true
 strict_optional = false
+
+[ftool.lake8]
+ignore = ['W503', 'E203']
+max-line-length = 88
+
+[tool.isort]
+line_length = 88
+known_first_party = "column_more"
+multi_line_output = 3
+atomic = true
+include_trailing_comma = true
+combine_as_imports = true
+force_alphabetical_sort_within_sections = true
