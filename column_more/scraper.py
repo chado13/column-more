@@ -1,7 +1,6 @@
 import abc
 import datetime
 import re
-from tokenize import String
 from typing import Dict, List, Tuple, TypedDict
 
 import requests
@@ -9,8 +8,8 @@ from bs4 import BeautifulSoup
 
 
 class Column(TypedDict):
-    title: String
-    link: String
+    title: str
+    link: str
 
 
 class Scraper(abc.ABC):
