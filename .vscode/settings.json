@@ -1,22 +1,18 @@
 {
-    "python.linting.enabled": true,
-    "python.linting.pylintEnabled": false,
-    "python.linting.flake8Enabled": true,
-    "python.formatting.provider": "black",
-    "isort.args": [
-        "--profile",
-        "black"
-    ],
+    "editor.formatOnSave": true,
+    "python.languageServer": "Pylance",
     "python.analysis.typeCheckingMode": "off",
+    "python.formatting.provider": "none",
     "python.linting.mypyEnabled": true,
-    "python.linting.mypyPath": "mypy",
+    "python.linting.enabled": true,
     "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.codeActionsOnSave": {
             "source.organizeImports": true
-        }
+        },
     },
-    "python.testing.pytestArgs": [
-        "tests"
+    "git.branchProtection": [
+        "main"
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
