@@ -1,8 +1,9 @@
 import abc
 import datetime
 import re
-from typing import Dict, List, Tuple, TypedDict
+from typing import TypedDict
 
+import bs4
 import requests
 from bs4 import BeautifulSoup
 
@@ -21,14 +22,16 @@ class Scraper(abc.ABC):
         return clean_text
 
     def _is_today(self, dt: datetime.datetime) -> bool:
-        today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today = datetime.datetime.now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         if dt >= today:
             return True
         else:
             return False
 
     @abc.abstractclassmethod
-    def get_url_params_headers(self) -> Tuple[str, Dict[str, str], Dict[str, str]]:
+    def get_url_params_headers(self) -> tuple[str, dict[str, str], dict[str, str]]:
         ...
 
     def get_html(self) -> BeautifulSoup:
@@ -38,23 +41,23 @@ class Scraper(abc.ABC):
         return html
 
     @abc.abstractclassmethod
-    def parse(self, html) -> List[Column]:
+    def parse(self, html: bs4.element) -> list[Column]:
         ...
 
-    def scrape(self) -> List[Column]:
+    def scrape(self) -> list[Column]:
         html = self.get_html()
         columns = self.parse(html)
         return columns
 
 
 class HKScraper(Scraper):
-    def get_url_params_headers(self):
+    def get_url_params_headers(self) -> tuple[str, dict[str, str], dict[str, str]]:
         url = "https://www.hankyung.com/opinion/0002"
         headers = {"Referer": "https://www.hankyung.com/opinion/0002"}
         params = {"page": "1"}
         return url, params, headers
 
-    def parse(self, html):
+    def parse(self, html: bs4.element) -> list[Column]:
         columns = []
         data = html.select("ul.list_basic.v2 > li > div.article")
         for each in data:
@@ -65,7 +68,7 @@ class HKScraper(Scraper):
             title = each.select_one("div.article > h3.tit > a").text.strip()
             link = each.select_one("div.article > h3.tit > a").get("href").strip()
             columns.append(dict(title=title, link=link))
-        return columns
+        return columns  # type: ignore
 
 
 class MTDScarper(Scraper):
@@ -74,7 +77,9 @@ class MTDScarper(Scraper):
         params = {
             "code": "column6",
         }
-        headers = {"Referer": "https://news.mt.co.kr/column/opinion_inside.html?code=06"}
+        headers = {
+            "Referer": "https://news.mt.co.kr/column/opinion_inside.html?code=06"
+        }
         return url, params, headers
 
     def parse(self, html):
@@ -98,17 +103,21 @@ class MTDScarper(Scraper):
 
 class SeoulScraper(Scraper):
     def get_url_params_headers(self):
-        url = "https://www.seoul.co.kr/news/newsList.php"
+        url = "https://www.seoul.co.kr/news/newslist.php"
         params = {"section": "column"}
-        headers = {"Referer": "https://www.seoul.co.kr/news/newsList.php?section=column"}
+        headers = {
+            "Referer": "https://www.seoul.co.kr/news/newslist.php?section=column"
+        }
         return url, params, headers
 
     def parse(self, html):
         columns = []
-        data = html.select("div#articleListDiv > ul.listType_ > li")
+        data = html.select("div#articlelistDiv > ul.listType_ > li")
         for each in data:
             title = each.select_one("div.tit.lineclamp2 > a").get("title")
-            link = "https://www.seoul.co.kr" + each.select_one("div.tit.lineclamp2 > a").get("href")
+            link = "https://www.seoul.co.kr" + each.select_one(
+                "div.tit.lineclamp2 > a"
+            ).get("href")
             dt = each.select_one("div.date").text.strip()
             dt = self._convert_str_to_datetime(dt, "%Y-%m-%d")
             if not self._is_today(dt):
